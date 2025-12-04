@@ -2,95 +2,94 @@ package middleware
 
 import (
 	"strings"
+	"uas_backend/app/model"
+	"uas_backend/app/repository"
 	"uas_backend/app/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// ==============================
-// JWT VALIDATION (WAJIB LOGIN)
-// ==============================
-func AuthRequired() fiber.Handler {
+type AuthMiddleware struct {
+	roleRepo *repository.RoleRepository
+}
+
+func NewAuthMiddleware(roleRepo *repository.RoleRepository) *AuthMiddleware {
+	return &AuthMiddleware{roleRepo: roleRepo}
+}
+
+// AuthRequired adalah global middleware untuk validasi token
+var AuthRequired fiber.Handler = func(c *fiber.Ctx) error {
+	authHeader := c.Get("Authorization")
+	if authHeader == "" {
+		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Missing authorization header"})
+	}
+
+	tokenParts := strings.Split(authHeader, " ")
+	if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Invalid token format"})
+	}
+
+	// Validasi Token & Ambil Claims
+	claims, err := utils.ParseToken(tokenParts[1])
+	if err != nil {
+		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Invalid or expired token"})
+	}
+
+	// Simpan data user ke Context (Locals) agar bisa dipakai di next handler
+	c.Locals("user_id", claims.UserID)
+	c.Locals("role", claims.Role)
+	c.Locals("permissions", claims.Permissions) // LOAD Permissions dari Token (Cache)
+
+	return c.Next()
+}
+
+// ---------------------------------------------------------------------
+// 2. PermissionRequired (Authorization / RBAC)
+// Tugas: Cek apakah user punya hak akses spesifik
+// Flow FR-002: Step 4 (Check), Step 5 (Allow/Deny)
+// ---------------------------------------------------------------------
+func (m *AuthMiddleware) PermissionRequired(requiredPerm string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		// Ambil permissions dari Context (yang diset oleh AuthRequired)
+		userPermsInterface := c.Locals("permissions")
+		if userPermsInterface == nil {
+			return c.Status(403).JSON(model.WebResponse{Code: 403, Status: "error", Message: "No permissions found"})
+		}
 
-		authHeader := c.Get("Authorization")
-		if authHeader == "" {
-			return c.Status(401).JSON(fiber.Map{
-				"error": "Token akses diperlukan",
+		// Casting ke []string
+		// Karena dari JWT parsing, kadang terdeteksi sebagai []interface{}, kita handle keduanya
+		var userPerms []string
+
+		switch v := userPermsInterface.(type) {
+		case []string:
+			userPerms = v
+		case []interface{}:
+			for _, item := range v {
+				if s, ok := item.(string); ok {
+					userPerms = append(userPerms, s)
+				}
+			}
+		}
+
+		// Cek apakah requiredPerm ada di daftar permission user
+		hasPermission := false
+		for _, p := range userPerms {
+			if p == requiredPerm {
+				hasPermission = true
+				break
+			}
+		}
+
+		// Deny Request
+		if !hasPermission {
+			return c.Status(403).JSON(model.WebResponse{
+				Code:    403,
+				Status:  "error",
+				Message: "Access denied. Missing permission: " + requiredPerm,
 			})
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			return c.Status(401).JSON(fiber.Map{
-				"error": "Format token tidak valid (gunakan: Bearer <token>)",
-			})
-		}
-
-		claims, err := utils.ValidateToken(parts[1])
-		if err != nil {
-			return c.Status(401).JSON(fiber.Map{
-				"error": "Token tidak valid atau sudah expired",
-			})
-		}
-
-		// Simpan claims ke context agar bisa digunakan oleh controller lain
-		c.Locals("user_id", claims.UserID)
-		c.Locals("username", claims.Username)
-		c.Locals("role", claims.Role)
-		c.Locals("permissions", claims.Permissions)
-
+		// Allow Request
 		return c.Next()
-	}
-}
-
-// ==============================
-// ROLE-BASED AUTH (SRS: RBAC)
-// contoh: RoleRequired("admin")
-// ==============================
-func RoleRequired(allowedRoles ...string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-
-		role, ok := c.Locals("role").(string)
-		if !ok {
-			return c.Status(401).JSON(fiber.Map{"error": "User tidak valid"})
-		}
-
-		for _, r := range allowedRoles {
-			if r == role {
-				return c.Next() // role cocok → lanjut
-			}
-		}
-
-		return c.Status(403).JSON(fiber.Map{
-			"error": "Akses ditolak. Role tidak memiliki izin",
-		})
-	}
-}
-
-// ==============================
-// PERMISSION-BASED AUTH
-// sesuai SRS (FR-002 Access Control)
-// example: PermissionRequired("achievement.create")
-// ==============================
-func PermissionRequired(requiredPermission string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-
-		permissions, ok := c.Locals("permissions").([]string)
-		if !ok {
-			return c.Status(403).JSON(fiber.Map{
-				"error": "Tidak dapat membaca permissions",
-			})
-		}
-
-		for _, p := range permissions {
-			if p == requiredPermission {
-				return c.Next() // permission cocok → lanjut
-			}
-		}
-
-		return c.Status(403).JSON(fiber.Map{
-			"error": "Akses ditolak. Permission tidak mencukupi",
-		})
 	}
 }

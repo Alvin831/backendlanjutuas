@@ -1,21 +1,17 @@
 package utils
 
 import (
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
-type JWTClaims struct {
-	UserID      uuid.UUID `json:"user_id"`
-	Username    string    `json:"username"`
-	Role        string    `json:"role"`
-	Permissions []string  `json:"permissions"`
-	jwt.RegisteredClaims
+// HashPassword mengenkripsi password menggunakan bcrypt
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
 }
 
-type UserWithPermissions struct {
-	ID          uuid.UUID
-	Username    string
-	Role        string
-	Permissions []string
+// CheckPasswordHash membandingkan password inputan user dengan hash di database
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

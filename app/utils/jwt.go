@@ -1,26 +1,33 @@
 package utils
 
 import (
-	"errors"
+	"errors" // [1] Tambahkan import ini
+	"os"
 	"time"
-	"uas_backend/app/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("your-secret-key-min-32-characters-long")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
-// ========================
-// Generate Access Token
-// ========================
-func GenerateAccessToken(user *model.UserWithPermissions) (string, error) {
-	claims := model.JWTClaims{
-		UserID:      user.ID,
-		Username:    user.Username,
-		Role:        user.Role,
-		Permissions: user.Permissions,
+type JwtClaims struct {
+	UserID      string   `json:"user_id"`
+	Role        string   `json:"role"`
+	Permissions []string `json:"permissions"`
+	jwt.RegisteredClaims
+}
+
+func GenerateToken(userID string, role string, permissions []string) (string, error) {
+	if len(jwtSecret) == 0 {
+		jwtSecret = []byte("rahasia_default_jangan_dipakai_production")
+	}
+
+	claims := JwtClaims{
+		UserID:      userID,
+		Role:        role,
+		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // sesuai SRS FR-001
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -29,25 +36,15 @@ func GenerateAccessToken(user *model.UserWithPermissions) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// ========================
-// Generate Refresh Token
-// ========================
-func GenerateRefreshToken(user *model.UserWithPermissions) (string, error) {
-	claims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // refresh 7 hari
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		Subject:   user.ID.String(),
+func ParseToken(tokenString string) (*JwtClaims, error) {
+	if len(jwtSecret) == 0 {
+		jwtSecret = []byte("rahasia_default_jangan_dipakai_production")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
-}
-
-// ========================
-// Validate Token
-// ========================
-func ValidateToken(tokenString string) (*model.JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &model.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrTokenSignatureInvalid // Ini ada di v5
+		}
 		return jwtSecret, nil
 	})
 
@@ -55,9 +52,11 @@ func ValidateToken(tokenString string) (*model.JWTClaims, error) {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*model.JWTClaims); ok && token.Valid {
+	// Validasi Claims
+	if claims, ok := token.Claims.(*JwtClaims); ok && token.Valid {
 		return claims, nil
 	}
 
-	return nil, errors.New("invalid token claims")
+	// [2] Perbaikan: Gunakan errors.New karena jwt.ErrTokenInvalid tidak ada
+	return nil, errors.New("token invalid") 
 }

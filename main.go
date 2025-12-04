@@ -15,12 +15,12 @@ import (
 
 func main() {
 
-	// Load file .env
+	// Load .env
 	if err := godotenv.Load(); err != nil {
 		log.Println("Warning: .env file tidak ditemukan, menggunakan environment system.")
 	}
 
-	// Connect database PostgreSQL
+	// Connect DB
 	db, err := database.ConnectDB()
 	if err != nil {
 		log.Fatal("Gagal koneksi database: ", err)
@@ -30,23 +30,21 @@ func main() {
 	// Init Fiber
 	app := fiber.New()
 
-	// === INIT REPO ===
+	// Init repository
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 
-
-	// === SET REPO KE SERVICE ===
+	// Set repo to service
 	service.SetUserRepo(userRepo)
 	service.SetRoleRepo(roleRepo)
-	
 
-	// === REGISTER ROUTES ===
+	// Register routes
 	api := app.Group("/api")
-
+	route.RegisterAuthRoutes(api)  // ⬅ WAJIB agar login & register aktif
 	route.RegisterUserRoutes(api)
 	route.RegisterRoleRoutes(api)
 
-	// Jalankan server
+	// Run server
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "3000"
