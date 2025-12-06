@@ -47,3 +47,38 @@ func CreateRole(c *fiber.Ctx) error {
 
 	return c.Status(201).JSON(fiber.Map{"success": true, "data": role, "message": "Role berhasil dibuat"})
 }
+
+// ================== ASSIGN PERMISSION TO ROLE ==================
+func AssignPermissionsToRole(c *fiber.Ctx) error {
+	roleId := c.Params("roleId")
+	if roleId == "" {
+		return c.Status(400).JSON(fiber.Map{"success": false, "message": "roleId diperlukan"})
+	}
+
+	var req struct {
+		PermissionIDs []string `json:"permission_ids"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"success": false, "message": "Request body tidak valid"})
+	}
+
+	if len(req.PermissionIDs) == 0 {
+		return c.Status(400).JSON(fiber.Map{"success": false, "message": "permission_ids tidak boleh kosong"})
+	}
+
+	err := roleRepo.AssignPermissions(roleId, req.PermissionIDs)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Permissions berhasil ditambahkan ke role",
+		"data": fiber.Map{
+			"role_id":        roleId,
+			"permission_ids": req.PermissionIDs,
+		},
+	})
+}
+

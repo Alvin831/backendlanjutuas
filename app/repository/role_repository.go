@@ -69,3 +69,31 @@ func (r *RoleRepository) FindByName(name string) (*model.Role, error) {
 	}
 	return &ro, nil
 }
+
+func (r *RoleRepository) AssignPermissions(roleID string, permissionIDs []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Hapus permission lama (reset)
+	_, err = tx.Exec(`DELETE FROM role_permission WHERE role_id = $1`, roleID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Insert permission baru
+	for _, permID := range permissionIDs {
+		_, err = tx.Exec(`
+			INSERT INTO role_permission (role_id, permission_id)
+			VALUES ($1, $2)
+		`, roleID, permID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
+}

@@ -17,49 +17,62 @@ func NewAuthMiddleware(roleRepo *repository.RoleRepository) *AuthMiddleware {
 	return &AuthMiddleware{roleRepo: roleRepo}
 }
 
-// AuthRequired adalah global middleware untuk validasi token
-var AuthRequired fiber.Handler = func(c *fiber.Ctx) error {
+// ====================================================================
+// 1️⃣ AUTH REQUIRED — Validasi TOKEN dulu
+// ====================================================================
+func AuthRequired(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
-		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Missing authorization header"})
+		return c.Status(401).JSON(model.WebResponse{
+			Code:    401,
+			Status:  "error",
+			Message: "Missing authorization header",
+		})
 	}
 
 	tokenParts := strings.Split(authHeader, " ")
 	if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Invalid token format"})
+		return c.Status(401).JSON(model.WebResponse{
+			Code:    401,
+			Status:  "error",
+			Message: "Invalid token format",
+		})
 	}
 
-	// Validasi Token & Ambil Claims
 	claims, err := utils.ParseToken(tokenParts[1])
 	if err != nil {
-		return c.Status(401).JSON(model.WebResponse{Code: 401, Status: "error", Message: "Invalid or expired token"})
+		return c.Status(401).JSON(model.WebResponse{
+			Code:    401,
+			Status:  "error",
+			Message: "Invalid or expired token",
+		})
 	}
 
-	// Simpan data user ke Context (Locals) agar bisa dipakai di next handler
+	// Simpan ke context untuk dipakai service berikutnya
 	c.Locals("user_id", claims.UserID)
 	c.Locals("role", claims.Role)
-	c.Locals("permissions", claims.Permissions) // LOAD Permissions dari Token (Cache)
+	c.Locals("permissions", claims.Permissions)
 
 	return c.Next()
 }
 
-// ---------------------------------------------------------------------
-// 2. PermissionRequired (Authorization / RBAC)
-// Tugas: Cek apakah user punya hak akses spesifik
-// Flow FR-002: Step 4 (Check), Step 5 (Allow/Deny)
-// ---------------------------------------------------------------------
+// ====================================================================
+// 2️⃣ PERMISSION REQUIRED — Cek apakah user punya izin yang diperlukan
+// ====================================================================
 func (m *AuthMiddleware) PermissionRequired(requiredPerm string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Ambil permissions dari Context (yang diset oleh AuthRequired)
+
 		userPermsInterface := c.Locals("permissions")
 		if userPermsInterface == nil {
-			return c.Status(403).JSON(model.WebResponse{Code: 403, Status: "error", Message: "No permissions found"})
+			return c.Status(403).JSON(model.WebResponse{
+				Code:    403,
+				Status:  "error",
+				Message: "No permissions found",
+			})
 		}
 
-		// Casting ke []string
-		// Karena dari JWT parsing, kadang terdeteksi sebagai []interface{}, kita handle keduanya
+		// Convert interface agar menjadi []string
 		var userPerms []string
-
 		switch v := userPermsInterface.(type) {
 		case []string:
 			userPerms = v
@@ -71,25 +84,23 @@ func (m *AuthMiddleware) PermissionRequired(requiredPerm string) fiber.Handler {
 			}
 		}
 
-		// Cek apakah requiredPerm ada di daftar permission user
-		hasPermission := false
+		// Check match
+		allowed := false
 		for _, p := range userPerms {
 			if p == requiredPerm {
-				hasPermission = true
+				allowed = true
 				break
 			}
 		}
 
-		// Deny Request
-		if !hasPermission {
+		if !allowed {
 			return c.Status(403).JSON(model.WebResponse{
 				Code:    403,
 				Status:  "error",
-				Message: "Access denied. Missing permission: " + requiredPerm,
+				Message: "Access denied — missing permission: " + requiredPerm,
 			})
 		}
 
-		// Allow Request
 		return c.Next()
 	}
 }

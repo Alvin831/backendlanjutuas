@@ -4,9 +4,10 @@ import (
 	"log"
 	"os"
 
-	"uas_backend/database"
 	"uas_backend/app/repository"
 	"uas_backend/app/service"
+	"uas_backend/database"
+	"uas_backend/middleware"
 	"uas_backend/route"
 
 	"github.com/gofiber/fiber/v2"
@@ -40,13 +41,26 @@ func main() {
 	service.SetRoleRepo(roleRepo)
 	service.SetPermissionRepo(permissionRepo)
 
+	// ========= INIT MIDDLEWARE =========
+	authMw := middleware.NewAuthMiddleware(roleRepo)
+
 	// ========= REGISTER ROUTES =========
 	api := app.Group("/api")
 
-	route.RegisterAuthRoutes(api)        // Login, Register, Profil
-	route.RegisterUserRoutes(api)        // CRUD User
-	route.RegisterRoleRoutes(api)        // CRUD Role + assign permission ke role
-	route.RegisterPermissionRoutes(api)  // CRUD Permission
+	// 🔹 Route Authentication (tidak pakai middleware)
+	route.RegisterAuthRoutes(api)
+
+	// 🔹 Route lain harus login dulu
+	protected := api.Use(middleware.AuthRequired)
+
+	// User routes (butuh token)
+	route.RegisterUserRoutes(protected, authMw)
+
+	// Role routes (butuh token)
+	route.RegisterRoleRoutes(protected, authMw)
+
+	// Permission routes (butuh token)
+	route.RegisterPermissionRoutes(protected)
 
 	// Run server
 	port := os.Getenv("APP_PORT")
