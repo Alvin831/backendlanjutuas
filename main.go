@@ -30,19 +30,23 @@ func main() {
 	// Init Fiber
 	app := fiber.New()
 
-	// Init repository
+	// ========= INIT REPOSITORY =========
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
+	permissionRepo := repository.NewPermissionRepository(db)
 
-	// Set repo to service
+	// ========= SET REPO TO SERVICE =========
 	service.SetUserRepo(userRepo)
 	service.SetRoleRepo(roleRepo)
+	service.SetPermissionRepo(permissionRepo)
 
-	// Register routes
+	// ========= REGISTER ROUTES =========
 	api := app.Group("/api")
-	route.RegisterAuthRoutes(api)  // ⬅ WAJIB agar login & register aktif
-	route.RegisterUserRoutes(api)
-	route.RegisterRoleRoutes(api)
+
+	route.RegisterAuthRoutes(api)        // Login, Register, Profil
+	route.RegisterUserRoutes(api)        // CRUD User
+	route.RegisterRoleRoutes(api)        // CRUD Role + assign permission ke role
+	route.RegisterPermissionRoutes(api)  // CRUD Permission
 
 	// Run server
 	port := os.Getenv("APP_PORT")
