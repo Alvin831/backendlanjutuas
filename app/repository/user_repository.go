@@ -102,3 +102,32 @@ func (r *UserRepository) FindAll() ([]model.User, error) {
 	}
 	return res, nil
 }
+
+// GetUserPermissions - Ambil permissions berdasarkan role user
+func (r *UserRepository) GetUserPermissions(userID string) ([]string, error) {
+	query := `
+		SELECT DISTINCT p.name
+		FROM users u
+		JOIN roles ro ON u.role_id = ro.id
+		JOIN role_permissions rp ON ro.id = rp.role_id
+		JOIN permissions p ON rp.permission_id = p.id
+		WHERE u.id = $1 AND u.is_active = true
+	`
+	
+	rows, err := r.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var permissions []string
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, err
+		}
+		permissions = append(permissions, permission)
+	}
+	
+	return permissions, nil
+}

@@ -74,3 +74,52 @@ func DeleteUser(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"success": true, "message": "User berhasil dihapus"})
 }
+
+// ================================================= UPDATE USER ROLE
+func UpdateUserRole(c *fiber.Ctx) error {
+	id := c.Params("id")
+	
+	var req struct {
+		RoleID string `json:"role_id"`
+	}
+	
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"success": false, "message": "Request tidak valid"})
+	}
+
+	// Get current user
+	user, err := userRepo.FindByID(id)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+	if user == nil {
+		return c.Status(404).JSON(fiber.Map{"success": false, "message": "User tidak ditemukan"})
+	}
+
+	// Update role
+	user.RoleID = req.RoleID
+	updatedUser, err := userRepo.Update(user)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "data": updatedUser, "message": "Role user berhasil diperbarui"})
+}
+
+// ================================================= GET USER PERMISSIONS (untuk debugging)
+func GetUserPermissions(c *fiber.Ctx) error {
+	userID := c.Params("userId")
+	
+	permissions, err := userRepo.GetUserPermissions(userID)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "message": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"user_id": userID,
+			"permissions": permissions,
+		},
+	})
+}

@@ -77,7 +77,7 @@ func (r *RoleRepository) AssignPermissions(roleID string, permissionIDs []string
 	}
 
 	// Hapus permission lama (reset)
-	_, err = tx.Exec(`DELETE FROM role_permission WHERE role_id = $1`, roleID)
+	_, err = tx.Exec(`DELETE FROM role_permissions WHERE role_id = $1`, roleID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -86,7 +86,7 @@ func (r *RoleRepository) AssignPermissions(roleID string, permissionIDs []string
 	// Insert permission baru
 	for _, permID := range permissionIDs {
 		_, err = tx.Exec(`
-			INSERT INTO role_permission (role_id, permission_id)
+			INSERT INTO role_permissions (role_id, permission_id)
 			VALUES ($1, $2)
 		`, roleID, permID)
 		if err != nil {

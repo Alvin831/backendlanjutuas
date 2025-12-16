@@ -65,11 +65,19 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(401).JSON(utils.ErrorResponse("Username atau password salah", 401, nil))
 	}
 
-	token, _ := utils.GenerateToken(user.ID, user.RoleID, []string{})
+	// Load user permissions
+	permissions, err := userRepo.GetUserPermissions(user.ID)
+	if err != nil {
+		// Jika error, tetap lanjut dengan empty permissions
+		permissions = []string{}
+	}
+
+	token, _ := utils.GenerateToken(user.ID, user.RoleID, permissions)
 
 	return c.JSON(utils.SuccessResponse(
 		"Login berhasil", 200, fiber.Map{
 			"access_token": token,
+			"permissions":  permissions, // Include permissions in response
 		},
 	))
 }
@@ -105,4 +113,18 @@ func GetProfile(c *fiber.Ctx) error {
 			Permissions: claims.Permissions,
 		},
 	))
+}
+
+// ================================================= REFRESH TOKEN
+func RefreshToken(c *fiber.Ctx) error {
+	// TODO: Implement refresh token logic
+	return c.JSON(utils.SuccessResponse("Token refreshed", 200, fiber.Map{
+		"access_token": "new_token_here",
+	}))
+}
+
+// ================================================= LOGOUT
+func Logout(c *fiber.Ctx) error {
+	// TODO: Implement logout logic (blacklist token)
+	return c.JSON(utils.SuccessResponse("Logout berhasil", 200, nil))
 }

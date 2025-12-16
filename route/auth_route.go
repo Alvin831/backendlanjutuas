@@ -8,12 +8,11 @@ import (
 )
 
 func RegisterAuthRoutes(api fiber.Router) {
-	auth := api.Group("/auth")
+	auth := api.Group("/v1/auth")
 
-	// Public (no token)
-	auth.Post("/register", service.Register)
+	// 5.1 Authentication - Sesuai dengan endpoint specification
 	auth.Post("/login", service.Login)
-
-	// Protected (token required)
+	auth.Post("/refresh", service.RefreshToken)
+	auth.Post("/logout", middleware.AuthRequired, service.Logout)
 	auth.Get("/profile", middleware.AuthRequired, service.GetProfile)
 }
