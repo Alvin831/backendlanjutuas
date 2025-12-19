@@ -1,15 +1,24 @@
 package utils
 
+// Response adalah struktur standar output JSON untuk Swagger
+// @Description Standard API response format
+type Response struct {
+	Meta Meta        `json:"meta"`
+	Data interface{} `json:"data"`
+}
+
 // APIResponse adalah struktur standar output JSON
 type APIResponse struct {
 	Meta Meta        `json:"meta"`
 	Data interface{} `json:"data"`
 }
 
+// Meta contains response metadata
+// @Description Response metadata
 type Meta struct {
-	Message string `json:"message"`
-	Code    int    `json:"code"`
-	Status  string `json:"status"`
+	Message string `json:"message" example:"Success"`
+	Code    int    `json:"code" example:"200"`
+	Status  string `json:"status" example:"success"`
 }
 
 // SuccessResponse untuk format sukses (Code 200-299)

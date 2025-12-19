@@ -17,15 +17,15 @@ type Student struct {
 }
 
 type Lecturer struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	NIDN      string    `json:"nidn"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Faculty   string    `json:"faculty"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	LecturerID string    `json:"lecturer_id"` // NIDN or employee ID
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Department string    `json:"department"`  // Faculty/Department
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type UpdateAdvisorRequest struct {

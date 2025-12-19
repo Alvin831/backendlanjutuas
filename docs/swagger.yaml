@@ -1,0 +1,709 @@
+basePath: /api
+definitions:
+  model.CreateAchievementRequest:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      points:
+        minimum: 1
+        type: integer
+      title:
+        type: string
+    required:
+    - category
+    - description
+    - points
+    - title
+    type: object
+  model.LoginRequest:
+    description: Login request payload
+    properties:
+      password:
+        example: "123456"
+        type: string
+      username:
+        example: admin
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  model.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  model.RegisterRequest:
+    description: User registration request payload
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      full_name:
+        example: New User
+        type: string
+      password:
+        example: "123456"
+        type: string
+      role_id:
+        example: f464ceb1-5481-49cf-99f0-d8f2d66f4506
+        type: string
+      username:
+        example: newuser
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - role_id
+    - username
+    type: object
+  model.SubmitAchievementRequest:
+    properties:
+      notes:
+        type: string
+    type: object
+  model.UpdateAdvisorRequest:
+    properties:
+      advisor_id:
+        type: string
+    required:
+    - advisor_id
+    type: object
+  model.VerifyAchievementRequest:
+    properties:
+      notes:
+        type: string
+    type: object
+  utils.Meta:
+    description: Response metadata
+    properties:
+      code:
+        example: 200
+        type: integer
+      message:
+        example: Success
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  utils.Response:
+    description: Standard API response format
+    properties:
+      data: {}
+      meta:
+        $ref: '#/definitions/utils.Meta'
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API untuk sistem manajemen prestasi mahasiswa dengan RBAC
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Achievement Management API
+  version: "1.0"
+paths:
+  /v1/achievements:
+    get:
+      consumes:
+      - application/json
+      description: Get list of achievements with role-based filtering and pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status
+        enum:
+        - draft
+        - submitted
+        - verified
+        - rejected
+        in: query
+        name: status
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by student ID
+        in: query
+        name: student_id
+        type: string
+      - default: created_at
+        description: Sort field
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievements retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Achievements
+      tags:
+      - Achievements
+    post:
+      consumes:
+      - application/json
+      description: Create a new achievement (Mahasiswa only)
+      parameters:
+      - description: Achievement data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Achievement created successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create New Achievement
+      tags:
+      - Achievements
+  /v1/achievements/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: Submit a draft achievement for verification by advisor
+      parameters:
+      - description: Achievement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Submit data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SubmitAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement submitted successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Achievement not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Submit Achievement for Verification
+      tags:
+      - Achievements
+  /v1/achievements/{id}/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify a submitted achievement (Dosen Wali only)
+      parameters:
+      - description: Achievement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Verification data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement verified successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Achievement not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Verify Achievement
+      tags:
+      - Achievements
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: User Login
+      tags:
+      - Authentication
+  /v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user and invalidate token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: User Logout
+      tags:
+      - Authentication
+  /v1/auth/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get current user profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User Profile
+      tags:
+      - Authentication
+  /v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh expired access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Refresh Access Token
+      tags:
+      - Authentication
+  /v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: User Registration
+      tags:
+      - Authentication
+  /v1/lecturers:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all lecturers with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lecturers retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Lecturers
+      tags:
+      - Lecturers
+  /v1/lecturers/{id}/advisees:
+    get:
+      consumes:
+      - application/json
+      description: Get all students advised by a specific lecturer
+      parameters:
+      - description: Lecturer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Advisees retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Lecturer Advisees
+      tags:
+      - Lecturers
+  /v1/reports/statistics:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive achievement statistics with role-based filtering
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Achievement Statistics
+      tags:
+      - Reports
+  /v1/students:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all students with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Students retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Students
+      tags:
+      - Students
+  /v1/students/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get student details by ID
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Student not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Student by ID
+      tags:
+      - Students
+  /v1/students/{id}/achievements:
+    get:
+      consumes:
+      - application/json
+      description: Get all achievements for a specific student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievements retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Student Achievements
+      tags:
+      - Students
+  /v1/students/{id}/advisor:
+    put:
+      consumes:
+      - application/json
+      description: Update advisor for a student
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Advisor data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateAdvisorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Advisor updated successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Student Advisor
+      tags:
+      - Students
+  /v1/users:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all users (Admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Users
+      tags:
+      - Users
+  /v1/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get user details by ID (Admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User by ID
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

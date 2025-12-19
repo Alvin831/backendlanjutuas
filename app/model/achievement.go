@@ -27,11 +27,13 @@ type Achievement struct {
 }
 
 type AchievementDocument struct {
-	ID       string `json:"id" bson:"id"`
-	FileName string `json:"file_name" bson:"file_name"`
-	FilePath string `json:"file_path" bson:"file_path"`
-	FileSize int64  `json:"file_size" bson:"file_size"`
-	MimeType string `json:"mime_type" bson:"mime_type"`
+	ID          string    `json:"id" bson:"id"`
+	FileName    string    `json:"file_name" bson:"file_name"`
+	FilePath    string    `json:"file_path" bson:"file_path"`
+	FileSize    int64     `json:"file_size" bson:"file_size"`
+	ContentType string    `json:"content_type" bson:"content_type"`
+	MimeType    string    `json:"mime_type" bson:"mime_type"`
+	UploadedAt  time.Time `json:"uploaded_at" bson:"uploaded_at"`
 }
 
 type CreateAchievementRequest struct {
@@ -60,13 +62,14 @@ type RejectAchievementRequest struct {
 	Reason string `json:"reason" validate:"required"`
 }
 
+// AchievementHistory represents the history of changes to an achievement
 type AchievementHistory struct {
-	ID            string    `json:"id"`
-	AchievementID string    `json:"achievement_id"`
-	Status        string    `json:"status"`
-	Notes         string    `json:"notes,omitempty"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
+	Action    string    `json:"action"`    // created, submitted, verified, rejected
+	Status    string    `json:"status"`    // draft, submitted, verified, rejected
+	Timestamp time.Time `json:"timestamp"`
+	ActorID   string    `json:"actor_id"`   // User ID who performed the action
+	ActorType string    `json:"actor_type"` // student, lecturer, admin
+	Message   string    `json:"message"`    // Description of the action
 }
 
 type AchievementAttachment struct {

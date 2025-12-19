@@ -4,19 +4,21 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// REQUEST untuk login
+// LoginRequest represents login credentials
+// @Description Login request payload
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" example:"admin" binding:"required"`
+	Password string `json:"password" example:"123456" binding:"required"`
 }
 
-// REGISTER REQUEST (kalau ada register)
+// RegisterRequest represents registration data
+// @Description User registration request payload
 type RegisterRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	FullName string `json:"full_name"`
-	Password string `json:"password"`
-	RoleID   string `json:"role_id"`
+	Username string `json:"username" example:"newuser" binding:"required"`
+	Email    string `json:"email" example:"user@example.com" binding:"required"`
+	FullName string `json:"full_name" example:"New User" binding:"required"`
+	Password string `json:"password" example:"123456" binding:"required"`
+	RoleID   string `json:"role_id" example:"f464ceb1-5481-49cf-99f0-d8f2d66f4506" binding:"required"`
 }
 
 // LOGIN RESPONSE — sesuai SRS

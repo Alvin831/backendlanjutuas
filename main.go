@@ -12,8 +12,31 @@ import (
 	"uas_backend/route"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
+
+	_ "uas_backend/docs" // Import generated docs
 )
+
+// @title Achievement Management API
+// @version 1.0
+// @description API untuk sistem manajemen prestasi mahasiswa dengan RBAC
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:3000
+// @BasePath /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 
@@ -39,10 +62,7 @@ func main() {
 	app := fiber.New()
 
 	// ========= GLOBAL MIDDLEWARE =========
-	// Rate limiting by IP untuk semua requests
-	app.Use(middleware.RateLimitByIP(1000, time.Hour)) // Max 1000 requests per hour per IP
-	
-	// Audit logging untuk semua requests
+	// Audit logging untuk semua requests (sudah include rate limiting)
 	app.Use(middleware.AuditMiddleware())
 
 	// ========= INIT REPOSITORY =========
@@ -51,8 +71,6 @@ func main() {
 	achievementRepo := repository.NewAchievementRepository()
 	achievementRefRepo := repository.NewAchievementReferenceRepository(db)
 	studentRepo := repository.NewStudentRepository(db)
-	notificationRepo := repository.NewNotificationRepository()
-	
 
 	// ========= SET REPO TO SERVICE =========
 	service.SetUserRepo(userRepo)
@@ -60,8 +78,15 @@ func main() {
 	service.SetAchievementRepo(achievementRepo)
 	service.SetAchievementReferenceRepo(achievementRefRepo)
 	service.SetStudentRepo(studentRepo)
-	service.SetNotificationRepo(notificationRepo)
 	
+
+	// ========= SWAGGER DOCUMENTATION =========
+	app.Get("/swagger/*", swagger.HandlerDefault) // default
+	app.Get("/docs/*", swagger.New(swagger.Config{ // custom
+		URL:         "http://localhost:3000/swagger/doc.json",
+		DeepLinking: false,
+		DocExpansion: "none",
+	}))
 
 	// ========= REGISTER ROUTES =========
 	api := app.Group("/api")

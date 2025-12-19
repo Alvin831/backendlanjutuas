@@ -2,10 +2,21 @@ package service
 
 import (
 	"uas_backend/app/model"
+	"uas_backend/app/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// GetAllUsers godoc
+// @Summary Get All Users
+// @Description Get list of all users (Admin only)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response "Users retrieved successfully"
+// @Failure 500 {object} utils.Response "Internal server error"
+// @Router /v1/users [get]
 func GetAllUsers(c *fiber.Ctx) error {
 	users, err := userRepo.FindAll()
 	if err != nil {
@@ -14,6 +25,18 @@ func GetAllUsers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "data": users})
 }
 
+// GetUserByID godoc
+// @Summary Get User by ID
+// @Description Get user details by ID (Admin only)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} utils.Response "User retrieved successfully"
+// @Failure 404 {object} utils.Response "User not found"
+// @Failure 500 {object} utils.Response "Internal server error"
+// @Router /v1/users/{id} [get]
 func GetUserByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	user, err := userRepo.FindByID(id)
@@ -28,15 +51,41 @@ func GetUserByID(c *fiber.Ctx) error {
 }
 
 func CreateUser(c *fiber.Ctx) error {
-	var req model.User
+	var req struct {
+		Username string `json:"username" validate:"required"`
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required,min=6"`
+		FullName string `json:"full_name" validate:"required"`
+		RoleID   string `json:"role_id" validate:"required"`
+	}
+	
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"success": false, "message": "Request tidak valid"})
 	}
 
-	newUser, err := userRepo.Create(&req)
+	// Hash password
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "message": "Failed to hash password"})
+	}
+
+	// Create user object
+	user := &model.User{
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: hashedPassword,
+		FullName:     req.FullName,
+		RoleID:       req.RoleID,
+		IsActive:     true,
+	}
+
+	newUser, err := userRepo.Create(user)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "message": err.Error()})
 	}
+
+	// Don't return password hash in response
+	newUser.PasswordHash = ""
 
 	return c.Status(201).JSON(fiber.Map{"success": true, "data": newUser, "message": "User berhasil dibuat"})
 }

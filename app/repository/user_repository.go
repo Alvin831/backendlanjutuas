@@ -16,8 +16,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(user *model.User) (*model.User, error) {
 	query := `
-		INSERT INTO users (username, email, password_hash, full_name, role_id, is_active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO users (id, username, email, password_hash, full_name, role_id, is_active, created_at, updated_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at
 	`
 	err := r.db.QueryRow(query,

@@ -18,25 +18,25 @@ func RegisterStudentRoutes(app fiber.Router) {
 	students.Get("/", 
 		middleware.AuthRequired,
 		middleware.RateLimitByUser(100, time.Hour),
-		middleware.AnyPermissionRequired("view_students", "manage_students"),
+		middleware.AnyPermissionRequired("view_all", "manage_users"),
 		service.GetAllStudents)
 
 	// GET /api/v1/students/:id
 	students.Get("/:id", 
 		middleware.AuthRequired,
-		middleware.AnyPermissionRequired("view_students", "manage_students"),
+		middleware.AnyPermissionRequired("view_all", "manage_users"),
 		service.GetStudentByID)
 
 	// GET /api/v1/students/:id/achievements
 	students.Get("/:id/achievements", 
 		middleware.AuthRequired,
-		middleware.AnyPermissionRequired("view_students", "manage_students", "view_achievements"),
+		middleware.AnyPermissionRequired("view_all", "manage_users", "verify_prestasi"),
 		service.GetStudentAchievements)
 
 	// PUT /api/v1/students/:id/advisor
 	students.Put("/:id/advisor", 
 		middleware.AuthRequired,
-		middleware.PermissionRequired("manage_students"),
+		middleware.PermissionRequired("manage_users"),
 		service.UpdateStudentAdvisor)
 
 	// Lecturers endpoints
@@ -46,12 +46,12 @@ func RegisterStudentRoutes(app fiber.Router) {
 	lecturers.Get("/", 
 		middleware.AuthRequired,
 		middleware.RateLimitByUser(100, time.Hour),
-		middleware.AnyPermissionRequired("view_lecturers", "manage_lecturers"),
+		middleware.AnyPermissionRequired("view_all", "manage_users"),
 		service.GetAllLecturers)
 
 	// GET /api/v1/lecturers/:id/advisees
 	lecturers.Get("/:id/advisees", 
 		middleware.AuthRequired,
-		middleware.AnyPermissionRequired("view_lecturers", "manage_lecturers", "verify_achievements"),
+		middleware.AnyPermissionRequired("view_all", "manage_users", "verify_prestasi"),
 		service.GetLecturerAdvisees)
 }

@@ -17,12 +17,12 @@ func RegisterReportRoutes(app fiber.Router) {
 	reports.Get("/statistics", 
 		middleware.AuthRequired,
 		middleware.RateLimitByUser(50, time.Hour),
-		middleware.AnyPermissionRequired("view_reports", "manage_reports"),
+		middleware.AnyPermissionRequired("view_all", "verify_prestasi", "manage_users"),
 		service.GetStatistics)
 
 	// GET /api/v1/reports/student/:id
 	reports.Get("/student/:id", 
 		middleware.AuthRequired,
-		middleware.AnyPermissionRequired("view_reports", "manage_reports", "view_students"),
+		middleware.AnyPermissionRequired("view_all", "verify_prestasi", "manage_users"),
 		service.GetStudentReport)
 }
